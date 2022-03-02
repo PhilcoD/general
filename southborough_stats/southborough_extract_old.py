@@ -615,9 +615,11 @@ def results_worksheet_download(email_input, pwd_input, startdate, enddate):
     enddate_link = driver.find_element_by_xpath('//*[@id="q_match_date_lteq"]')
     enddate_link.clear()
     enddate_link.send_keys(enddate)
-    link = driver.find_element_by_xpath('//*[@id="match_search"]/div/table/tbody/tr[4]/td[2]/input')
+    # generic_link = driver.find_element_by_xpath('"//body"')
+    # generic_link.click()
+    link = driver.find_element_by_xpath('//*[@id="match_search"]/div[3]/div[2]/button')
     link.click()
-    link = driver.find_element_by_xpath('//*[@id="match_search"]/div/table/tbody/tr[4]/td[3]/a')
+    link = driver.find_element_by_xpath('//*[@id="index_page"]/div[1]/div[2]/div/div/a')
     link.click()
     
     ticker = 0
