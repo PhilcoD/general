@@ -15,6 +15,7 @@ import selenium
 from dateutil.parser import parse
 from openpyxl import Workbook
 from selenium import webdriver
+from selenium.webdriver.common.by import By
 
 
 def results_worksheet_download(
@@ -42,24 +43,39 @@ def results_worksheet_download(
     driver = webdriver.Chrome(webdriver_path)
     driver.get("https://southboroughcc.play-cricket.com/")
 
-    cookie_accept_link = driver.find_element_by_xpath(
-        '//*[@id="cookieaccept"]/div/div/div/div/button'
+    cookie_accept_link = driver.find_element(by=By.XPATH,
+                                             value='/html/body/div[7]/div/div/div/div[1]/div[2]/div/button',
     )
     cookie_accept_link.click()
 
-    login_link = driver.find_element_by_xpath("/html/body/div[2]/div/div[3]/ul/li[2]/a")
+    login_link = driver.find_element(by=By.XPATH,
+                                     value="/html/body/div[2]/div/div[3]/ul/li[1]/a",
+                                    )
     login_link.click()
 
     driver.implicitly_wait(10)
-
-    email_link = driver.find_element_by_xpath('//*[@id="main"]/form/div[1]/input')
+    
+    email_link = driver.find_element(by=By.XPATH,
+                                     value='/html/body/div[1]/div/div/div[3]/div[1]/div/div/form/div[1]/div/input',
+                                    )
     email_link.send_keys(website_inputs["email"])
+    
+    pwd_link = driver.find_element(by=By.XPATH,
+                                   value='/html/body/div[1]/div/div/div[3]/div[1]/div/div/form/div[2]/div/input',
+                                  )
 
-    pwd_link = driver.find_element_by_xpath('//*[@id="main"]/form/div[2]/input')
+    pwd_link.click()
+    
+    time.sleep(5)
+    
     pwd_link.send_keys(website_inputs["password"])
-
-    link = driver.find_element_by_xpath('//*[@id="main"]/form/div[4]/input')
+    
+    time.sleep(5)
+    
+    link = driver.find_element_by_xpath('/html/body/div[1]/div/div/div[3]/div[1]/div/div/form/div[3]/button[1]')
     link.click()
+    
+    time.sleep(2)
 
     driver.get("https://southboroughcc.play-cricket.com/site_admin/results")
 
@@ -72,7 +88,7 @@ def results_worksheet_download(
     enddate_link.clear()
     enddate_link.send_keys(website_inputs["end_date"])
     match_search_link = driver.find_element_by_xpath(
-        '//*[@id="match_search"]/div[3]/div[2]/button'
+        '/html/body/div[5]/div[2]/div[4]/div[1]/div[3]/form/div[4]/div[2]/button/span[1]'
     )
     match_search_link.click()
     download_results_link = driver.find_element_by_xpath(
