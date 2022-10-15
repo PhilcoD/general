@@ -521,4 +521,262 @@ def match_extract(soup4, gameid):
     match_reference_dict["playcricketid"] = gameid
     match_reference_dict, error_msg = match_reference(match_reference_dict, match_figures_dict, error_msg)
     
-    return match_figures_dict, match_reference_dict
+    return match_figures_dict, match_reference_dict, error_msg
+
+def bowling_extract(
+    soup4, gameid, innings_id, match_figures_dict, match_reference_dict, error_msg
+):
+
+    bowling_dict = {}
+    bowler_count = 1
+
+    all_elems = soup4.select(
+        "body > div.container100sm.container.container-scorecard > div > div.col-sm-12.col-scorecard.mb50"
+    )
+
+    for k in range(len(innings_id)):
+
+        if (
+            str(all_elems[0].find_all("a")[k].contents[0]).replace("\n", " ").strip()
+            in match_figures_dict["home_team"]
+        ):
+            batting_team = match_figures_dict["home_team"]
+            bowling_team = match_figures_dict["away_team"]
+        else:
+            batting_team = match_figures_dict["away_team"]
+            bowling_team = match_figures_dict["home_team"]
+
+        for i in range(11):
+
+            bowling_elems = soup4.select(
+                "#innings"
+                + innings_id[k]
+                + " > table > tbody > tr:nth-child("
+                + str(i + 1)
+                + ") > td:nth-child(1)"
+            )
+            if len(bowling_elems) > 0:
+                bowling_dict["bowler_" + str(bowler_count)] = {
+                    "unique_bowler_reference": "",
+                    "unique_match_reference": "",
+                    "batting_team": "",
+                    "bowling_team": "",
+                    "bowler_number": "",
+                    "bowler_name": "",
+                    "overs": "",
+                    "maidens": "",
+                    "runs": "",
+                    "wickets": "",
+                    "wides": "",
+                    "no_balls": "",
+                    "economy": "",
+                    "average": "",
+                }
+
+                bowling_dict["bowler_" + str(bowler_count)][
+                    "unique_match_reference"
+                ] = match_reference_dict["unique_match_reference"]
+                bowling_dict["bowler_" + str(bowler_count)][
+                    "batting_team"
+                ] = batting_team
+                bowling_dict["bowler_" + str(bowler_count)][
+                    "bowling_team"
+                ] = bowling_team
+                bowling_dict["bowler_" + str(bowler_count)]["bowler_number"] = str(
+                    i + 1
+                )
+
+                if "Unsure" in bowling_elems[0].contents[0]:
+                    bowling_dict["bowler_" + str(bowler_count)][
+                        "bowler_name"
+                    ] = "Unsure"
+                elif "player_stats" not in str(bowling_elems[0].contents[0]):
+                    bowling_dict["bowler_" + str(bowler_count)][
+                        "bowler_name"
+                    ] = bowling_elems[0].contents[0]
+                else:
+                    bowling_dict["bowler_" + str(bowler_count)]["bowler_name"] = str(
+                        bowling_elems[0].contents[0].contents[0]
+                    )
+
+                bowling_table_map = {
+                    "0": "overs",
+                    "1": "maidens",
+                    "2": "runs",
+                    "3": "wickets",
+                    "4": "wides",
+                    "5": "no_balls",
+                }
+
+                for j in range(6):
+                    bowling_figure_elems = soup4.select(
+                        "#innings"
+                        + innings_id[k]
+                        + " > table > tbody > tr:nth-child("
+                        + str(i + 1)
+                        + ") > td:nth-child("
+                        + str(j + 2)
+                        + ")"
+                    )
+                    if len(bowling_figure_elems[0].contents) == 0:
+                        bowling_data_point = 0
+                    if len(bowling_figure_elems[0].contents) > 0:
+                        bowling_data_point = float(bowling_figure_elems[0].contents[0])
+
+                    data_point_map = bowling_table_map[str(j)]
+
+                    bowling_dict["bowler_" + str(bowler_count)][
+                        data_point_map
+                    ] = bowling_data_point
+
+                if bowling_dict["bowler_" + str(bowler_count)]["overs"] == 0:
+                    bowling_dict["bowler_" + str(bowler_count)]["economy"] = float(0)
+                else:
+                    bowling_dict["bowler_" + str(bowler_count)]["economy"] = (
+                        bowling_dict["bowler_" + str(bowler_count)]["runs"]
+                        / bowling_dict["bowler_" + str(bowler_count)]["overs"]
+                    )
+
+                if bowling_dict["bowler_" + str(bowler_count)]["wickets"] == 0:
+                    bowling_dict["bowler_" + str(bowler_count)]["average"] = float(0)
+                else:
+                    bowling_dict["bowler_" + str(bowler_count)]["average"] = (
+                        bowling_dict["bowler_" + str(bowler_count)]["runs"]
+                        / bowling_dict["bowler_" + str(bowler_count)]["wickets"]
+                    )
+
+                bowling_dict["bowler_" + str(bowler_count)][
+                    "unique_bowler_reference"
+                ] = (
+                    bowling_dict["bowler_" + str(bowler_count)][
+                        "unique_match_reference"
+                    ]
+                    + bowling_dict["bowler_" + str(bowler_count)]["batting_team"][
+                        :3
+                    ].upper()
+                    + bowling_dict["bowler_" + str(bowler_count)]["bowling_team"][
+                        :3
+                    ].upper()
+                    + "BOW"
+                    + bowling_dict["bowler_" + str(bowler_count)]["bowler_number"]
+                )
+
+                bowler_count = bowler_count + 1
+
+    return bowling_dict, error_msg
+
+def batting_extract(soup4, gameid, innings_id, match_figures_dict, match_reference_dict, error_msg):
+    
+    batting_dict = {}
+    batter_count = 1
+    
+    all_elems = soup4.select('body > div.container100sm.container.container-scorecard > div > div.col-sm-12.col-scorecard.mb50')
+    
+    for k in range(len(innings_id)):
+
+        if str(all_elems[0].find_all('a')[k].contents[0]).replace('\n', ' ').strip() in match_figures_dict["home_team"]:
+            batting_team = match_figures_dict["home_team"]
+            bowling_team = match_figures_dict["away_team"]
+        else:
+            batting_team = match_figures_dict["away_team"]
+            bowling_team = match_figures_dict["home_team"]
+            
+        for i in range(11):
+            batting_elems = soup4.select('#innings' + innings_id[k] + ' > div.table-responsive-sm > table.table.standm.table-hover > tbody > tr:nth-child(' + str(1+i) + ') > td:nth-child(1) > div.bts')# > a')
+            
+            if len(batting_elems) > 0:
+                batting_dict["batter_" + str(batter_count)] = {
+                    "unique_batter_reference": "",
+                    "unique_match_reference": "",
+                    "batting_team": "",
+                    "bowling_team": "",
+                    "batter_number": "",
+                    "batter_name": "",
+                    "captain": "",
+                    "wicketkeeper": "",
+                    "secondary_dismissal": "",
+                    "secondary_dismisser": "",
+                    "bowled": "",
+                    "bowler": "",
+                    "runs": "",
+                    "balls": "",
+                    "fours": "",
+                    "sixes": "",
+                    "strike_rate": "",
+                }
+                
+                batting_dict["batter_" + str(batter_count)][
+                    "unique_match_reference"
+                ] = match_reference_dict["unique_match_reference"]
+                batting_dict["batter_" + str(batter_count)][
+                    "batting_team"
+                ] = batting_team
+                batting_dict["batter_" + str(batter_count)][
+                    "bowling_team"
+                ] = bowling_team
+                batting_dict["batter_" + str(batter_count)]["batter_number"] = str(
+                    i + 1
+                )              
+                
+                batter_name_elems = soup4.select('#innings' + innings_id[k] + ' > div.table-responsive-sm > table.table.standm.table-hover > tbody > tr:nth-child(' + str(1+i) + ') > td:nth-child(1) > div.bts')
+                if len(batter_name_elems) == 0:
+                    break
+                if "Unsure" in batter_name_elems[0]:
+                    batting_dict["batter_" + str(batter_count)]["batter_name"] = "Unsure"
+                elif 'player_stats' not in str(batter_name_elems[0].contents[0]):
+                    batting_dict["batter_" + str(batter_count)]["batter_name"] = batter_name_elems[0].contents[0]
+                else:
+                    batting_dict["batter_" + str(batter_count)]["batter_name"] = batter_name_elems[0].contents[0].contents[0]
+
+                    if len(batter_name_elems[0].contents[0].contents) > 1:
+                        if "captain" in str(batter_name_elems[0].contents[0].contents):
+                            batting_dict["batter_" + str(batter_count)]["captain"] = "Y"
+                        if "Keeper" in str(batter_name_elems[0].contents[0].contents):
+                            batting_dict["batter_" + str(batter_count)]["wicketkeeper"] = "Y"
+                
+                secondary_dismissal_elems = soup4.select('#innings' + innings_id[k] + ' > div.table-responsive-sm > table.table.standm.table-hover > tbody > tr:nth-child(' + str(1+i) + ') > td:nth-child(2)')
+                if len(secondary_dismissal_elems[0].contents) > 0:
+                    batting_dict["batter_" + str(batter_count)]["secondary_dismissal"] = secondary_dismissal_elems[0].contents[0].contents[0]
+                    if 'Unsure' in secondary_dismissal_elems[0]:
+                        batting_dict["batter_" + str(batter_count)]["secondary_dismisser"] = 'Unsure'
+                    elif len(secondary_dismissal_elems[0].contents) > 1 and 'player_stats' not in str(secondary_dismissal_elems[0].contents[1]):
+                        batting_dict["batter_" + str(batter_count)]["secondary_dismisser"] = str(secondary_dismissal_elems[0].contents[1])
+                    elif len(secondary_dismissal_elems[0].contents) > 1:
+                        batting_dict["batter_" + str(batter_count)]["secondary_dismisser"] = secondary_dismissal_elems[0].contents[1].contents[0]
+                
+                primary_dismissal_elems = soup4.select('#innings' + innings_id[k] + ' > div.table-responsive-sm > table.table.standm.table-hover > tbody > tr:nth-child(' + str(1+i) + ') > td:nth-child(3)')
+                if len(primary_dismissal_elems[0].contents) > 0:
+                    batting_dict["batter_" + str(batter_count)]["bowled"] = primary_dismissal_elems[0].contents[0].contents[0].strip()
+                    if "Unsure" in primary_dismissal_elems[0]:
+                        batting_dict["batter_" + str(batter_count)]["bowler"] = "Unsure"
+                    elif 'player_stats' not in str(primary_dismissal_elems[0].contents[1]):
+                        batting_dict["batter_" + str(batter_count)]["bowler"] = str(primary_dismissal_elems[0].contents[1])
+                    else:
+                        batting_dict["batter_" + str(batter_count)]["bowler"] = primary_dismissal_elems[0].contents[1].contents[0]
+                
+                batter_runs_elems = soup4.select('#innings' + innings_id[k] + ' > div.table-responsive-sm > table.table.standm.table-hover > tbody > tr:nth-child(' + str(1+i) + ') > td:nth-child(4)')
+                if len(batter_runs_elems[0].contents) > 0:
+                    batting_dict["batter_" + str(batter_count)]["runs"] = int(batter_runs_elems[0].contents[0].contents[0])
+
+                batting_table_map = {
+                    "0": "balls",
+                    "1": "fours",
+                    "2": "sixes",
+                    "3": "strike_rate",
+                }
+                
+                
+                for j in range(5,9):
+                    batting_figure_elems = soup4.select('#innings' + innings_id[k] + ' > div.table-responsive-sm > table.table.standm.table-hover > tbody > tr:nth-child(' + str(1+i) + ') > td:nth-child(' + str(j) + ')')
+                    if len(batting_figure_elems[0].contents) > 0:
+                        batting_data_point = float(batting_figure_elems[0].contents[0])
+                        
+                        data_point_map = batting_table_map[str(j-5)]
+                        batting_dict["batter_" + str(batter_count)][
+                            data_point_map
+                        ] = batting_data_point                
+                
+                batter_count = batter_count + 1
+       
+    
+    return batting_dict, error_msg
