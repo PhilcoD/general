@@ -231,6 +231,7 @@ def Match_extract(soup4, innings_id, PlayCricketID, insert_db = True):
         sql_insert_match(conn, Match_figures)
         print('Match reference is: ' + Reference_data[1])
     else:
+        
         print(Match_figures)
 
     return Reference_data, Teams_data
