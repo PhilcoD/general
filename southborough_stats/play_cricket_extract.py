@@ -469,7 +469,7 @@ def match_reference_switch(match_reference_list, match_reference_dict, num):
     return match_reference_dict, num
 
 
-def match_extract(soup4, gameid):
+def match_extract(soup4, gameid, error_msg):
     
     match_figures_dict = {
         "home_game_points": "",
@@ -509,7 +509,6 @@ def match_extract(soup4, gameid):
         "unique_match_reference": "",
 }
 
-    error_msg = []
     
     match_figures_dict, error_msg = gamepoints_extract(soup4, match_figures_dict, error_msg)
     match_figures_dict, error_msg = league_extract(soup4, match_figures_dict, error_msg)
@@ -776,7 +775,237 @@ def batting_extract(soup4, gameid, innings_id, match_figures_dict, match_referen
                             data_point_map
                         ] = batting_data_point                
                 
+                batting_dict["batter_" + str(batter_count)][
+                    "unique_batter_reference"
+                ] = (
+                    batting_dict["batter_" + str(batter_count)][
+                        "unique_match_reference"
+                    ]
+                    + batting_dict["batter_" + str(batter_count)]["batting_team"][
+                        :3
+                    ].upper()
+                    + batting_dict["batter_" + str(batter_count)]["bowling_team"][
+                        :3
+                    ].upper()
+                    + "BAT"
+                    + batting_dict["batter_" + str(batter_count)]["batter_number"]
+                )
+                
                 batter_count = batter_count + 1
        
     
     return batting_dict, error_msg
+
+def extras_extract(
+    soup4, gameid, innings_id, match_figures_dict, match_reference_dict, error_msg
+):
+
+    extras_dict = {}
+
+    all_elems = soup4.select(
+        "body > div.container100sm.container.container-scorecard > div > div.col-sm-12.col-scorecard.mb50"
+    )
+
+    for k in range(len(innings_id)):
+
+        extras_dict[f"innings_{str(k+1)}"] = {
+            "unique_extras_innings_reference": "",
+            "unique_match_reference": "",
+            "batting_team": "",
+            "bowling_team": "",
+            "byes": "",
+            "leg_byes": "",
+            "wides": "",
+            "no_balls": "",
+            "total_extras": "",
+        }
+
+        if (
+            str(all_elems[0].find_all("a")[k].contents[0]).replace("\n", " ").strip()
+            in match_figures_dict["home_team"]
+        ):
+            batting_team = match_figures_dict["home_team"]
+            bowling_team = match_figures_dict["away_team"]
+        else:
+            batting_team = match_figures_dict["away_team"]
+            bowling_team = match_figures_dict["home_team"]
+
+        extras_dict[f"innings_{str(k+1)}"][
+            "unique_match_reference"
+        ] = match_reference_dict["unique_match_reference"]
+        extras_dict[f"innings_{str(k+1)}"]["batting_team"] = batting_team
+        extras_dict[f"innings_{str(k+1)}"]["bowling_team"] = bowling_team
+        
+        extras_elems = soup4.select(
+            "#innings"
+            + innings_id[k]
+            + " > div.table-responsive-sm > table.table.table-sm.table-scorecard-footer > tbody > tr:nth-child(1) > td.text-left.text-md-right.d-none.d-md-block > div"
+        )
+        
+        if len(extras_elems) > 0:
+            if extras_elems[0].contents[1] == "0":
+                extras_dict[f"innings_{str(k+1)}"]["byes"] = 0
+                extras_dict[f"innings_{str(k+1)}"]["leg_byes"] = 0
+                extras_dict[f"innings_{str(k+1)}"]["wides"] = 0
+                extras_dict[f"innings_{str(k+1)}"]["no_balls"] = 0
+                
+            extras_short_map = {
+                "0": "b",
+                "1": "lb",
+                "2": "w",
+                "3": "nb",
+            }
+            extras_map = {
+                "0": "byes",
+                "1": "leg_byes",
+                "2": "wides",
+                "3": "no_balls",
+            }
+
+            for i in range(4):
+                if re.search("\d{1,2}" + extras_short_map[str(i)], extras_elems[0].contents[1]) == None:
+                    extras_dict[f"innings_{str(k+1)}"][extras_map[str(i)]] = 0
+                else:
+                    extras_dict[f"innings_{str(k+1)}"][extras_map[str(i)]] = int(
+                        re.search("\d{1,2}" + extras_short_map[str(i)], extras_elems[0].contents[1])[0]
+                        .replace(extras_short_map[str(i)], " ")
+                        .strip()
+                    ) 
+            extras_dict[f"innings_{str(k+1)}"]["total_extras"] = extras_dict[f"innings_{str(k+1)}"]["byes"] + extras_dict[f"innings_{str(k+1)}"]["leg_byes"] + extras_dict[f"innings_{str(k+1)}"]["wides"] + extras_dict[f"innings_{str(k+1)}"]["no_balls"]
+        
+        extras_dict[f"innings_{str(k+1)}"]["unique_extras_innings_reference"] = (extras_dict[f"innings_{str(k+1)}"]["unique_match_reference"] + extras_dict[f"innings_{str(k+1)}"]["batting_team"][:2].upper() + extras_dict[f"innings_{str(k+1)}"]["bowling_team"][:2].upper())
+        
+    return extras_dict, error_msg
+
+def fall_of_wicket_extract(soup4, gameid, innings_id, match_figures_dict, match_reference_dict, error_msg):
+    
+    fall_of_wicket_dict = {}
+    
+    all_elems = soup4.select('body > div.container100sm.container.container-scorecard > div > div.col-sm-12.col-scorecard.mb50')
+    
+    for k in range(len(innings_id)):
+        
+        if (
+            str(all_elems[0].find_all("a")[k].contents[0]).replace("\n", " ").strip()
+            in match_figures_dict["home_team"]
+        ):
+            batting_team = match_figures_dict["home_team"]
+            bowling_team = match_figures_dict["away_team"]
+        else:
+            batting_team = match_figures_dict["away_team"]
+            bowling_team = match_figures_dict["home_team"]
+            
+        fall_of_wicket_dict[f"innings_{str(k+1)}"] = {
+            "unique_fall_of_wicket_reference": "",
+            "unique_match_reference": "",
+            "batting_team": "",
+            "bowling_team": "",
+            "team_runs_1": "",
+            "batter_1": "",
+            "not_out_batter_1": "",
+            "not_out_batter_score_1": "",
+            "team_runs_2": "",
+            "batter_2": "",
+            "not_out_batter_2": "",
+            "not_out_batter_score_2": "",
+            "team_runs_3": "",
+            "batter_3": "",
+            "not_out_batter_3": "",
+            "not_out_batter_score_3": "",
+            "team_runs_4": "",
+            "batter_4": "",
+            "not_out_batter_4": "",
+            "not_out_batter_score_4": "",
+            "team_runs_5": "",
+            "batter_5": "",
+            "not_out_batter_5": "",
+            "not_out_batter_score_5": "",
+            "team_runs_6": "",
+            "batter_6": "",
+            "not_out_batter_6": "",
+            "not_out_batter_score_6": "",
+            "team_runs_7": "",
+            "batter_7": "",
+            "not_out_batter_7": "",
+            "not_out_batter_score_7": "",
+            "team_runs_8": "",
+            "batter_8": "",
+            "not_out_batter_8": "",
+            "not_out_batter_score_8": "",
+            "team_runs_9": "",
+            "batter_9": "",
+            "not_out_batter_9": "",
+            "not_out_batter_score_9": "",
+            "team_runs_10": "",
+            "batter_10": "",
+            "not_out_batter_10": "",
+            "not_out_batter_score_10": "",
+        }
+        
+        fall_of_wicket_dict[f"innings_{str(k+1)}"]["unique_match_reference"] = match_reference_dict["unique_match_reference"]
+        fall_of_wicket_dict[f"innings_{str(k+1)}"]["batting_team"] = batting_team
+        fall_of_wicket_dict[f"innings_{str(k+1)}"]["bowling_team"] = bowling_team
+        fall_of_wicket_dict[f"innings_{str(k+1)}"]["unique_fall_of_wicket_reference"] = (fall_of_wicket_dict[f"innings_{str(k+1)}"]["unique_match_reference"] + fall_of_wicket_dict[f"innings_{str(k+1)}"]["batting_team"][:2].upper() + fall_of_wicket_dict[f"innings_{str(k+1)}"]["bowling_team"][:2].upper())
+        
+        fow_elems = soup4.select('#innings' + innings_id[k] + ' > div:nth-child(2) > div > p.font-3')
+        fow_teamruns = [""]*10
+        fow_batter = [""]*10
+        fow_no_batter = [""]*10
+        fow_no_batterscore = [""]*10
+        
+        if len(fow_elems) > 0:
+            for i in range(len(fow_elems[0].contents)):
+
+                if re.search('>-\d{1,2}<',str(fow_elems[0].contents[i])) != None:
+                    break
+
+                if re.search('\d{1,3}-\d{1,2}',str(fow_elems[0].contents[i])) != None:
+                    wicketno = int(re.search('-\d{1,2}',str(fow_elems[0].contents[i]))[0][1:])
+                    fow_teamruns[wicketno - 1] = int(re.search('\d{1,3}-',str(fow_elems[0].contents[i]))[0][:-1])
+
+                if str(fow_elems[0].contents[i]) == " (":
+                    fow_batter[wicketno - 1] = str(fow_elems[0].contents[i -1].contents[0])
+                    fow_no_batter[wicketno - 1] = str(fow_elems[0].contents[i + 1].contents[0])
+                    fow_no_batterscore[wicketno - 1] = int(re.search('-\d{1,3}\*', str(fow_elems[0].contents[i + 2]))[0][1:-1])
+                if "Unsure (Unsure-0*)" in fow_elems[0].contents[i]:
+                    fow_batter[wicketno - 1] = 'Unsure'
+                    fow_no_batter[wicketno - 1] = 'Unsure'
+                    fow_no_batterscore[wicketno - 1] = int(re.search('-\d{1,3}\*', fow_elems[0].contents[i])[0][1:-1])
+            
+        for i in range(10):
+            fall_of_wicket_dict[f"innings_{str(k+1)}"][f"team_runs_{str(i+1)}"] = fow_teamruns[i]
+            fall_of_wicket_dict[f"innings_{str(k+1)}"][f"batter_{str(i+1)}"] = fow_batter[i]
+            fall_of_wicket_dict[f"innings_{str(k+1)}"][f"not_out_batter_{str(i+1)}"] = fow_no_batter[i]
+            fall_of_wicket_dict[f"innings_{str(k+1)}"][f"not_out_batter_score_{str(i+1)}"] = fow_no_batterscore[i]
+    
+    return fall_of_wicket_dict, error_msg
+    
+    
+def gameid_full_extract(gameid):
+    r4 = requests.get(
+        "https://southboroughcc.play-cricket.com/website/results/" + gameid
+    )
+    r4.raise_for_status()
+    soup4 = bs4.BeautifulSoup(r4.content, "html.parser")
+
+    innings_id = find_innings_id(r4.text)
+    
+    error_msg = []
+
+    match_figures_dict, match_reference_dict, error_msg = match_extract(
+        soup4, gameid, error_msg
+    )
+    batting_dict, error_msg = batting_extract(
+        soup4, gameid, innings_id, match_figures_dict, match_reference_dict, error_msg
+    )
+    bowling_dict, error_msg = bowling_extract(
+        soup4, gameid, innings_id, match_figures_dict, match_reference_dict, error_msg
+    )
+    extras_dict, error_msg = extras_extract(
+        soup4, gameid, innings_id, match_figures_dict, match_reference_dict, error_msg
+    )
+    fall_of_wicket_dict, error_msg = fall_of_wicket_extract(
+        soup4, gameid, innings_id, match_figures_dict, match_reference_dict, error_msg
+    )
+
+    return match_figures_dict, match_reference_dict, batting_dict, bowling_dict, extras_dict, fall_of_wicket_dict, error_msg
