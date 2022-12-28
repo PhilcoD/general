@@ -245,3 +245,116 @@ def d10_system_image(commands):
     for i in range(int(len(picture)/40)):
         system_output += picture[i*40:(i*40)+40] + "\n"
     print(system_output)
+    
+def d1_inputs(input_txt_path):
+    with open(input_txt_path) as f:
+        input_string = f.read()
+    splitlines = input_string.splitlines()
+
+    elves = []
+    elf = []
+    for i in splitlines+[""]:
+        if i == "":
+            elves.append(elf)
+            elf = []
+        else:
+            elf.append(int(i))
+    return elves
+
+
+def d1_max_carry_num(elves, top_num):
+    carry_sums = [sum(i) for i in elves]
+    carry_sums.sort()
+    return sum(carry_sums[-top_num:])
+
+
+def d2_inputs(input_path_txt):
+    with open(input_path_txt) as f:
+        input_string = f.read()
+    splitlines = input_string.splitlines()
+    rounds = [[i[0], i[2]] for i in splitlines]
+    return rounds
+
+def d2_strat_1(rounds):
+    strategy_1_points = {
+        "X": {
+            "A": 4,
+            "B": 1,
+            "C": 7
+        },
+        "Y": {
+            "A": 8,
+            "B": 5,
+            "C": 2
+        },
+        "Z": {
+            "A": 3,
+            "B": 9,
+            "C": 6
+        }
+    }
+    points = [strategy_1_points[round[1]][round[0]] for round in rounds]
+    return sum(points)
+
+def d2_strat_2(rounds):
+    strategy_2_points = {
+        "X": {
+            "A": 3,
+            "B": 1,
+            "C": 2
+        },
+        "Y": {
+            "A": 4,
+            "B": 5,
+            "C": 6
+        },
+        "Z": {
+            "A": 8,
+            "B": 9,
+            "C": 7
+        }
+    }
+    points = [strategy_2_points[round[1]][round[0]] for round in rounds]
+    return sum(points)
+
+def d3_inputs(input_path_txt):
+    with open(input_path_txt) as f:
+        input_string = f.read()
+    splitlines = [list(i) for i in input_string.splitlines()]
+    compartments = []
+    
+    for i in splitlines:
+        half_point = int(len(i)/2)
+        half_1 = i[:half_point]
+        half_2 = i[half_point:]
+        compartments.append([half_1, half_2])
+    
+    return compartments
+
+def d3_common_items(compartments):
+    priority_dict = {}
+    letters = [chr(i) for i in range(97,123)] + [chr(i) for i in range(65,91)]
+    for i in range(len(letters)):
+        priority_dict[letters[i]] = i+1
+
+    common_items = []
+    for i in compartments:
+        half_1 = i[0]
+        half_2 = i[1]
+        common_items += list(set(half_1).intersection(half_2))
+
+    return sum([priority_dict[x] for x in common_items])
+
+def d3_badges_priority(compartments):
+    priority_dict = {}
+    letters = [chr(i) for i in range(97,123)] + [chr(i) for i in range(65,91)]
+    for i in range(len(letters)):
+        priority_dict[letters[i]] = i+1
+
+    whole_rucksacks = [i[0]+i[1] for i in compartments]
+    badges = []
+    for i in range(int(len(whole_rucksacks)/3)):
+        compare_1 = list(set(whole_rucksacks[3*i]).intersection(whole_rucksacks[3*i + 1]))
+        compare_2 = list(set(whole_rucksacks[3*i + 2]).intersection(compare_1))
+        badges += compare_2
+    return sum([priority_dict[x] for x in badges])
